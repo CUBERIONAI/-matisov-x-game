@@ -1,452 +1,332 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Matisov X — Full Edition</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Matisov X — Cyber Samurai</title>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
-        :root {
-            --neon: #00d2ff;
-            --bg-dark: #02040a;
-            --accent: #0088cc;
-        }
+:root{
+  --neon:#00d2ff;
+  --bg:#02040a;
+}
 
-        * {
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            touch-action: manipulation;
-        }
+/* Блокуємо зум, щоб тапало ідеально */
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: none;
+}
 
-        body {
-            margin: 0;
-            background-color: var(--bg-dark);
-            color: #ffffff;
-            font-family: 'Orbitron', sans-serif;
-            overflow: hidden;
-            height: 100vh;
-        }
+body{
+  margin:0;
+  background:radial-gradient(circle at 50% 30%, #0b2a44, var(--bg));
+  color:#fff;
+  font-family:'Orbitron',sans-serif;
+  overflow:hidden;
+  height: 100vh;
+}
 
-        /* Ефекти скла та неону */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 210, 255, 0.2);
-            border-radius: 24px;
-            backdrop-filter: blur(10px);
-        }
+.viewport{position:relative;height:55vh;overflow:hidden; touch-action: none;}
 
-        .neon-button {
-            background: var(--neon);
-            color: #000;
-            font-weight: 900;
-            border-radius: 14px;
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
+.cyber-floor{
+  position:absolute;bottom:-60%;left:-50%;
+  width:200%;height:200%;
+  background:
+    linear-gradient(var(--neon) 1px, transparent 1px),
+    linear-gradient(90deg,var(--neon) 1px, transparent 1px);
+  background-size:80px 80px;
+  opacity:.15;transform:rotateX(70deg);
+}
 
-        .neon-button:active {
-            transform: scale(0.96);
-        }
+.hero-wrap{
+  position:absolute;bottom:6%;left:50%;
+  transform:translateX(-50%);
+  filter:drop-shadow(0 0 40px var(--neon));
+  transition: transform 0.05s;
+}
+#hero{height:45vh;animation:idle 3s ease-in-out infinite; pointer-events: none;}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 
-        /* Модальні вікна */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.98);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            padding: 25px;
-            animation: slideUp 0.3s ease-out;
-        }
+.tap-text{
+  position:absolute;font-size:2.2rem;font-weight:900;
+  color:var(--neon);pointer-events:none;
+  animation:float .6s forwards; z-index: 100;
+}
+@keyframes float{to{transform:translateY(-180px) scale(1.4);opacity:0}}
 
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
+/* Секретний екран та меню */
+.modal-full {
+  position:fixed;inset:0;background:rgba(0,0,0,0.95);
+  backdrop-filter: blur(10px); z-index: 1000;
+  display:none; flex-direction: column; padding: 25px;
+}
 
-        /* Анімація цифр при тапі */
-        .tap-particle {
-            position: absolute;
-            color: var(--neon);
-            font-weight: 900;
-            font-size: 2.2rem;
-            pointer-events: none;
-            z-index: 2000;
-            text-shadow: 0 0 15px var(--neon);
-            animation: particleFloat 0.8s ease-out forwards;
-        }
+.upgrade-panel{
+  background:#0b1a2a; border: 1px solid var(--neon); border-radius:2rem;
+  width:100%; max-width:520px; padding:1.5rem; margin: auto;
+  max-height: 80vh; overflow-y: auto;
+}
 
-        @keyframes particleFloat {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-150px) scale(1.2); }
-        }
+.upgrade-card{
+  background:#05111f; padding:1rem; border-radius:1.5rem;
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:1rem; border: 1px solid rgba(0,210,255,0.1);
+}
 
-        /* Персонаж */
-        #samuraiHero {
-            height: 48vh;
-            filter: drop-shadow(0 0 30px rgba(0, 210, 255, 0.3));
-            transition: transform 0.08s cubic-bezier(0.1, 0.7, 0.1, 1);
-            will-change: transform;
-        }
+.upgrade-card button{
+  background:var(--neon); color:black; font-weight:bold;
+  border-radius:1rem; padding:0.4rem 1rem;
+}
 
-        .close-btn {
-            font-size: 2.5rem;
-            line-height: 1;
-            color: #ffffff;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
+.task-card {
+  border:1px dashed var(--neon); padding:0.8rem;
+  border-radius:1.2rem; margin-bottom:0.8rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
 
-        .close-btn:hover { opacity: 1; }
-    </style>
+.close-x { font-size: 2.5rem; color: #ff4444; cursor: pointer; line-height: 1; }
+</style>
 </head>
 <body>
 
-    <div id="gameContainer" class="flex flex-col h-screen p-5">
-        
-        <header class="flex justify-between items-start pt-2">
-            <div onclick="toggleScreen('profileModal', true)" class="cursor-pointer group">
-                <h1 class="text-2xl font-black text-cyan-400 tracking-tighter">MATISOV X</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <span id="lvlDisplay" class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">LVL 1</span>
-                    <div class="w-20 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                        <div id="lvlProgress" class="h-full bg-cyan-400" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="text-right">
-                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Balance</p>
-                <p id="mainBalance" class="text-3xl font-black text-white">0</p>
-            </div>
-        </header>
-
-        <main class="flex-grow flex items-center justify-center relative" id="clickZone">
-            <div class="absolute w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-            <img id="samuraiHero" src="https://raw.githubusercontent.com/CUBERIONAI/Matisov-X/main/file_0000000008b471f48ebdb6f35b1b1a5a.png" alt="Hero">
-        </main>
-
-        <footer class="pb-4 space-y-4">
-            <div class="glass-panel p-4">
-                <div class="flex justify-between items-end mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">⚡</span>
-                        <span class="text-xs font-black text-gray-300 uppercase">Energy</span>
-                    </div>
-                    <span id="energyText" class="text-sm font-bold text-cyan-400">1000/1000</span>
-                </div>
-                <div class="h-3 bg-gray-900 rounded-full border border-white/5 overflow-hidden">
-                    <div id="energyBar" class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-300"></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="toggleScreen('hubModal', true)" class="neon-button py-4 text-xs font-black uppercase tracking-widest">HUB & Tasks</button>
-                <button onclick="toggleScreen('profileModal', true)" class="bg-white/5 border border-white/10 rounded-2xl py-4 text-xs font-black uppercase tracking-widest">Profile</button>
-            </div>
-        </footer>
+<header class="p-6 flex justify-between items-center">
+  <div onclick="openScreen('secretScreen')" class="cursor-pointer">
+    <h1 class="text-2xl font-black text-cyan-400">Matisov X</h1>
+    <div id="lvlTag" class="text-[9px] bg-cyan-900 px-2 py-0.5 rounded text-cyan-300">LVL 1 • RECRUIT</div>
+  </div>
+  <div class="text-right">
+    <div class="text-xs text-blue-400 uppercase">Balance</div>
+    <div class="text-3xl font-black">
+      <span id="balDisplay">0</span>
     </div>
+  </div>
+</header>
 
-    <div id="hubModal" class="modal-overlay">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black text-cyan-400 uppercase italic">Cyber Hub</h2>
-            <button onclick="toggleScreen('hubModal', false)" class="close-btn">✕</button>
-        </div>
+<main class="viewport" id="tapZone">
+  <div class="cyber-floor"></div>
+  <div class="hero-wrap" id="heroContainer">
+    <img id="hero" src="https://raw.githubusercontent.com/CUBERIONAI/Matisov-X/main/file_0000000008b471f48ebdb6f35b1b1a5a.png">
+  </div>
+</main>
 
-        <div class="flex-grow overflow-y-auto space-y-8 pb-10">
-            <section>
-                <h3 class="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Available Missions</h3>
-                <div id="missionList" class="space-y-3">
-                    </div>
-            </section>
+<div class="px-6 -mt-10">
+  <div class="bg-black/60 rounded-3xl p-5 border border-white/10">
+    <div class="flex justify-between text-xs mb-2 font-bold">
+      <span class="text-cyan-400">⚡ Energy Source</span>
+      <span id="energyText">1000 / 1000</span>
+    </div>
+    <div class="h-3 bg-black rounded-full overflow-hidden">
+      <div id="energyBar" class="h-full bg-cyan-400 shadow-[0_0_15px_#00d2ff]"></div>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-4 mt-4">
+    <button onclick="openScreen('upgradeMenu')" class="bg-cyan-500 text-black py-4 rounded-2xl font-black uppercase text-xs">Hub & Upgrades</button>
+    <button onclick="openScreen('secretScreen')" class="bg-white/10 py-4 rounded-2xl font-black uppercase text-xs border border-white/20">Profile</button>
+  </div>
+</div>
 
-            <section>
-                <h3 class="text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Augmentations</h3>
-                <div id="upgradeList" class="space-y-3">
-                    </div>
-            </section>
+<div id="secretScreen" class="modal-full">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-cyan-400 font-black text-xl tracking-widest uppercase">Cyber Profile</h2>
+    <div onclick="closeScreen('secretScreen')" class="close-x">✕</div>
+  </div>
+
+  <div class="flex flex-col items-center mb-8">
+    <img id="uAvatar" src="" class="w-24 h-24 rounded-full border-4 border-cyan-400 p-1 mb-4">
+    <h3 id="uName" class="text-xl font-black uppercase">GUEST</h3>
+    <p id="uRank" class="text-[10px] text-cyan-400">RANK: RECRUIT</p>
+  </div>
+
+  <div id="ton-connect-button" class="flex justify-center mb-6"></div>
+
+  <div class="space-y-4">
+    <div class="upgrade-card">
+        <div><p class="text-[10px] opacity-50">TON WALLET</p><p id="tonStatus" class="text-xs font-bold text-red-500">Disconnected</p></div>
+        <button onclick="TG.showAlert('Deposit TON system integrated')">Refill</button>
+    </div>
+    <div class="glass p-4 rounded-2xl bg-white/5 border border-white/10">
+        <p class="text-[10px] text-center mb-2 opacity-50 uppercase">Next Level Progress</p>
+        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="lvlBar" class="h-full bg-cyan-400" style="width: 0%"></div>
         </div>
     </div>
+  </div>
+</div>
 
-    <div id="profileModal" class="modal-overlay">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black text-cyan-400 uppercase italic">Cyber Profile</h2>
-            <button onclick="toggleScreen('profileModal', false)" class="close-btn">✕</button>
-        </div>
-
-        <div class="flex flex-col items-center mb-10">
-            <div class="relative group">
-                <div class="absolute inset-0 bg-cyan-400 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition"></div>
-                <img id="userAvatar" src="" class="w-28 h-28 rounded-full border-4 border-cyan-400 p-1 relative z-10">
-                <div id="rankBadge" class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-cyan-400 text-black text-[10px] font-black px-4 py-1 rounded-full z-20 shadow-xl uppercase">Recruit</div>
-            </div>
-            <h3 id="userNameDisplay" class="mt-6 text-xl font-black tracking-widest uppercase">Cyber Samurai</h3>
-        </div>
-
-        <div class="space-y-4">
-            <div class="glass-panel p-5 flex justify-between items-center">
-                <div>
-                    <p class="text-[10px] text-gray-500 font-black uppercase">TON Wallet</p>
-                    <p id="walletStatusText" class="text-xs font-bold text-red-500 mt-1">Not Connected</p>
-                </div>
-                <div id="ton-connect-btn"></div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div class="glass-panel p-4 text-center">
-                    <p class="text-[9px] text-gray-500 uppercase font-black">Total Taps</p>
-                    <p id="statTaps" class="text-lg font-black text-white">0</p>
-                </div>
-                <div class="glass-panel p-4 text-center">
-                    <p class="text-[9px] text-gray-500 uppercase font-black">Missions</p>
-                    <p id="statMissions" class="text-lg font-black text-white">0/6</p>
-                </div>
-            </div>
-
-            <button onclick="TG.showAlert('Deposit TON system integration in progress...')" class="neon-button w-full py-5 text-sm uppercase tracking-widest mt-4">Refill Balance</button>
-        </div>
+<div id="upgradeMenu" class="modal-full">
+  <div class="upgrade-panel">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-cyan-400 text-2xl font-black uppercase">Cyber Hub</h2>
+      <div onclick="closeScreen('upgradeMenu')" class="close-x">✕</div>
     </div>
 
-    <script>
-        const TG = window.Telegram.WebApp;
-        const UID = TG.initDataUnsafe?.user?.id || "demo_user";
-        TG.expand();
+    <div class="space-y-4">
+      <h3 class="text-xs font-bold text-white/40 uppercase tracking-widest border-b border-white/10 pb-1">Missions (1M MX each)</h3>
+      <div id="missionList"></div>
 
-        // Ініціалізація TON Connect
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
-        });
+      <h3 class="text-xs font-bold text-white/40 uppercase tracking-widest border-b border-white/10 pb-1 mt-6">Upgrades</h3>
+      <div id="upgList"></div>
+    </div>
+  </div>
+</div>
 
-        // Стан гри
-        let state = {
-            balance: parseInt(localStorage.getItem(`mx_bal_${UID}`)) || 0,
-            energy: 1000,
-            level: parseInt(localStorage.getItem(`mx_lvl_${UID}`)) || 1,
-            swordLvl: parseInt(localStorage.getItem(`mx_swd_${UID}`)) || 0,
-            handsLvl: parseInt(localStorage.getItem(`mx_hnd_${UID}`)) || 0,
-            completedTasks: JSON.parse(localStorage.getItem(`mx_tsk_${UID}`)) || [],
-            totalTaps: parseInt(localStorage.getItem(`mx_ttap_${UID}`)) || 0
-        };
+<script>
+const TG = Telegram.WebApp;
+const UID = TG.initDataUnsafe?.user?.id || "local";
+TG.expand();
 
-        const MISSIONS = [
-            { id: 'tg_ch', title: 'Join Channel', reward: 1000000, link: 'https://t.me/Matisov_X' },
-            { id: 'tg_group', title: 'Join Chat', reward: 1000000, link: 'https://t.me/MatisovX' },
-            { id: 'yt', title: 'Subscribe YouTube', reward: 1000000, link: 'https://www.youtube.com/@MatisovX' },
-            { id: 'inst', title: 'Follow Instagram', reward: 1000000, link: 'https://www.instagram.com/matisov.x' },
-            { id: 'tw', title: 'Follow on X', reward: 1000000, link: 'https://x.com/matisovx' },
-            { id: 'ton_wallet', title: 'Connect TON Wallet', reward: 100000, link: '#' }
-        ];
+const tonConnectUI = new TONConnectUI.TonConnectUI({
+    manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
+    buttonRootId: 'ton-connect-button'
+});
 
-        // Збереження даних
-        function saveProgress() {
-            localStorage.setItem(`mx_bal_${UID}`, state.balance);
-            localStorage.setItem(`mx_lvl_${UID}`, state.level);
-            localStorage.setItem(`mx_swd_${UID}`, state.swordLvl);
-            localStorage.setItem(`mx_hnd_${UID}`, state.handsLvl);
-            localStorage.setItem(`mx_tsk_${UID}`, JSON.stringify(state.completedTasks));
-            localStorage.setItem(`mx_ttap_${UID}`, state.totalTaps);
-        }
+let state = {
+  bal: parseInt(localStorage.getItem(`mx_b_${UID}`)) || 0,
+  lvl: parseInt(localStorage.getItem(`mx_l_${UID}`)) || 1,
+  e: 1000,
+  swd: parseInt(localStorage.getItem(`mx_s_${UID}`)) || 0,
+  hnd: parseInt(localStorage.getItem(`mx_h_${UID}`)) || 0,
+  tasks: JSON.parse(localStorage.getItem(`mx_t_${UID}`)) || []
+};
 
-        // Розрахунок досвіду для наступного рівня
-        function getNextLevelExp() {
-            return Math.floor(150000 * Math.pow(1.8, state.level - 1));
-        }
+const MISSIONS = [
+    { id: 'm1', title: 'Join Channel', reward: 1000000, url: 'https://t.me/Matisov_X' },
+    { id: 'm2', title: 'Join Chat', reward: 1000000, url: 'https://t.me/MatisovX' },
+    { id: 'm3', title: 'YouTube Sub', reward: 1000000, url: 'https://www.youtube.com/@MatisovX' },
+    { id: 'm4', title: 'Instagram', reward: 1000000, url: 'https://www.instagram.com/matisov.x' },
+    { id: 'm5', title: 'Follow X', reward: 1000000, url: 'https://x.com/matisovx' },
+    { id: 'ton', title: 'Connect Wallet', reward: 100000, url: '#' }
+];
 
-        // Оновлення інтерфейсу
-        function updateUI() {
-            const nextExp = getNextLevelExp();
-            
-            // Якщо баланс перевищує поріг - підвищуємо рівень
-            if (state.balance >= nextExp) {
-                state.level++;
-                state.balance -= nextExp;
-                TG.HapticFeedback.notificationOccurred('success');
-                saveProgress();
-            }
+function save() {
+  localStorage.setItem(`mx_b_${UID}`, state.bal);
+  localStorage.setItem(`mx_l_${UID}`, state.lvl);
+  localStorage.setItem(`mx_s_${UID}`, state.swd);
+  localStorage.setItem(`mx_h_${UID}`, state.hnd);
+  localStorage.setItem(`mx_t_${UID}`, JSON.stringify(state.tasks));
+}
 
-            // Рендер головних значень
-            document.getElementById('mainBalance').textContent = state.balance.toLocaleString();
-            document.getElementById('lvlDisplay').textContent = `LVL ${state.level}`;
-            document.getElementById('lvlProgress').style.width = (state.balance / nextExp * 100) + "%";
+function render() {
+  const nextLvl = Math.floor(100000 * Math.pow(2, state.lvl - 1));
+  if(state.bal >= nextLvl) { state.bal -= nextLvl; state.lvl++; TG.HapticFeedback.notificationOccurred('success'); }
 
-            // Енергія
-            const maxEnergy = 1000 + (state.handsLvl * 250);
-            document.getElementById('energyText').textContent = `${Math.floor(state.energy)}/${maxEnergy}`;
-            document.getElementById('energyBar').style.width = (state.energy / maxEnergy * 100) + "%";
+  const maxE = 1000 + (state.hnd * 200);
+  balDisplay.textContent = state.bal.toLocaleString();
+  energyText.textContent = `${Math.floor(state.e)} / ${maxE}`;
+  energyBar.style.width = (state.e / maxE * 100) + "%";
+  
+  const ranks = ["Recruit", "Warrior", "Samurai", "Cyber Ronin", "Shogun", "Matisov Chosen"];
+  const rName = ranks[Math.min(state.lvl - 1, 5)];
+  lvlTag.textContent = `LVL ${state.lvl} • ${rName}`;
+  uRank.textContent = `RANK: ${rName}`;
+  uLvlBadge.textContent = `LVL ${state.lvl}`;
+  lvlBar.style.width = (state.bal / nextLvl * 100) + "%";
 
-            // Статистика в профілі
-            document.getElementById('statTaps').textContent = state.totalTaps.toLocaleString();
-            document.getElementById('statMissions').textContent = `${state.completedTasks.length}/${MISSIONS.length}`;
+  if(TG.initDataUnsafe?.user) {
+    uName.textContent = (TG.initDataUnsafe.user.username || TG.initDataUnsafe.user.first_name).toUpperCase();
+    uAvatar.src = TG.initDataUnsafe.user.photo_url || '';
+  }
+}
 
-            // Юзер інфо
-            if(TG.initDataUnsafe?.user) {
-                const user = TG.initDataUnsafe.user;
-                document.getElementById('userNameDisplay').textContent = (user.username || user.first_name).toUpperCase();
-                document.getElementById('userAvatar').src = user.photo_url || 'https://via.placeholder.com/150';
-            }
+// Клікер - працює для 5 пальців
+document.getElementById('tapZone').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const maxE = 1000 + (state.hnd * 200);
+  if(state.e < 1) return;
 
-            // Ранг
-            const ranks = ["Recruit", "Warrior", "Samurai", "Cyber Ronin", "Shogun", "Matisov Chosen"];
-            const rankIndex = Math.min(state.level - 1, ranks.length - 1);
-            document.getElementById('rankBadge').textContent = ranks[rankIndex];
-        }
+  Array.from(e.changedTouches).forEach(touch => {
+    if(state.e < 1) return;
+    state.e--;
+    const gain = 1 + state.swd;
+    state.bal += gain;
 
-        // Логіка клікера
-        document.getElementById('clickZone').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (state.energy < 1) return;
+    const t = document.createElement("div");
+    t.className = "tap-text";
+    t.style.left = touch.clientX + "px";
+    t.style.top = touch.clientY + "px";
+    t.textContent = "+" + gain;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 600);
+  });
 
-            Array.from(e.changedTouches).forEach(touch => {
-                const tapPower = 1 + state.swordLvl;
-                state.balance += tapPower;
-                state.energy -= 1;
-                state.totalTaps += 1;
+  const hero = document.getElementById('heroContainer');
+  hero.style.transform = 'translateX(-50%) scale(0.95)';
+  setTimeout(() => hero.style.transform = 'translateX(-50%) scale(1)', 50);
 
-                // Створення вилітаючої цифри
-                const particle = document.createElement('div');
-                particle.className = 'tap-particle';
-                particle.style.left = `${touch.clientX}px`;
-                particle.style.top = `${touch.clientY}px`;
-                particle.textContent = `+${tapPower}`;
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 800);
+  render(); save();
+  TG.HapticFeedback.impactOccurred('medium');
+}, {passive: false});
 
-                // Анімація героя
-                const hero = document.getElementById('samuraiHero');
-                hero.style.transform = 'scale(0.92) translateY(10px)';
-                setTimeout(() => hero.style.transform = 'scale(1) translateY(0)', 80);
-            });
+function openScreen(id) { 
+    document.getElementById(id).style.display = 'flex'; 
+    if(id === 'upgradeMenu') renderHub();
+}
+function closeScreen(id) { document.getElementById(id).style.display = 'none'; }
 
-            updateUI();
-            saveProgress();
-            TG.HapticFeedback.impactOccurred('medium');
-        });
+function renderHub() {
+    const list = document.getElementById('missionList');
+    list.innerHTML = MISSIONS.map(m => {
+        const done = state.tasks.includes(m.id);
+        return `
+        <div class="task-card">
+            <div><p class="text-xs font-bold uppercase">${m.title}</p><p class="text-[9px] text-green-400">+${m.reward.toLocaleString()}</p></div>
+            ${done ? '<span class="text-green-500 text-xs font-bold">✓</span>' : `<button onclick="doTask('${m.id}')" class="bg-white text-black text-[10px] px-3 py-1 rounded-lg font-bold">GO</button>`}
+        </div>`;
+    }).join('');
 
-        // Керування екранами
-        function toggleScreen(id, show) {
-            document.getElementById(id).style.display = show ? 'flex' : 'none';
-            if (show && id === 'hubModal') renderHub();
-        }
+    const ulist = document.getElementById('upgList');
+    const upgs = [
+        { id: 'swd', name: 'Sword Power', cost: 5000 * (state.swd + 1) },
+        { id: 'hnd', name: 'Cyber Organs', cost: 10000 * (state.hnd + 1) }
+    ];
+    ulist.innerHTML = upgs.map(u => `
+        <div class="upgrade-card">
+            <div><p class="text-xs font-bold uppercase">${u.name}</p><p class="text-[9px] opacity-50">Level ${state[u.id]}</p></div>
+            <button onclick="buyUpgrade('${u.id}', ${u.cost})">${u.cost.toLocaleString()}</button>
+        </div>`).join('');
+}
 
-        // Рендер HUB (Завдання та Магазин)
-        function renderHub() {
-            const mList = document.getElementById('missionList');
-            mList.innerHTML = MISSIONS.map(m => {
-                const done = state.completedTasks.includes(m.id);
-                return `
-                <div class="glass-panel p-4 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-black uppercase text-white">${m.title}</p>
-                        <p class="text-[10px] font-bold text-green-400 mt-0.5">+${m.reward.toLocaleString()} MX</p>
-                    </div>
-                    ${done ? '<span class="text-green-500 text-[10px] font-black italic">✓ DONE</span>' : 
-                    `<button onclick="handleTaskClick('${m.id}')" class="bg-white text-black text-[10px] font-black px-5 py-2 rounded-lg uppercase">Go</button>`}
-                </div>`;
-            }).join('');
+function doTask(id) {
+    const t = MISSIONS.find(m => m.id === id);
+    if(id === 'ton') {
+        if(tonConnectUI.connected) claimTask(id, t.reward);
+        else TG.showAlert("Connect TON wallet in Profile first!");
+    } else {
+        TG.openLink(t.url);
+        setTimeout(() => {
+            TG.showConfirm("Check subscription: Done?", (ok) => { if(ok) claimTask(id, t.reward); });
+        }, 2000);
+    }
+}
 
-            const uList = document.getElementById('upgradeList');
-            const upgs = [
-                { id: 'swd', name: 'Cyber Sword', lvl: state.swordLvl, cost: 10000 * Math.pow(2.5, state.swordLvl), desc: 'Increases tap power' },
-                { id: 'hnd', name: 'Neural Hands', lvl: state.handsLvl, cost: 25000 * Math.pow(2.2, state.handsLvl), desc: 'Max energy & recovery' }
-            ];
-            uList.innerHTML = upgs.map(u => `
-                <div class="glass-panel p-4 flex justify-between items-center border-white/5">
-                    <div>
-                        <p class="text-xs font-black uppercase text-white">${u.name} (Lvl ${u.lvl})</p>
-                        <p class="text-[9px] text-gray-400 mt-1">${u.desc}</p>
-                    </div>
-                    <button onclick="buyUpgrade('${u.id}', ${u.cost})" class="neon-button text-[10px] px-4 py-2 uppercase">
-                        ${Math.floor(u.cost).toLocaleString()}
-                    </button>
-                </div>`).join('');
-        }
+function claimTask(id, reward) {
+    if(!state.tasks.includes(id)) { state.tasks.push(id); state.bal += reward; save(); render(); renderHub(); }
+}
 
-        // Логіка завдань
-        function handleTaskClick(id) {
-            const task = MISSIONS.find(m => m.id === id);
-            
-            if (id === 'ton_wallet') {
-                if (tonConnectUI.connected) {
-                    completeMission(id, task.reward);
-                } else {
-                    TG.showAlert("Будь ласка, спочатку підключіть гаманець у профілі!");
-                    toggleScreen('hubModal', false);
-                    toggleScreen('profileModal', true);
-                }
-                return;
-            }
+function buyUpgrade(id, cost) {
+    if(state.bal >= cost) { state.bal -= cost; state[id]++; save(); render(); renderHub(); TG.HapticFeedback.notificationOccurred('success'); }
+}
 
-            // Логіка підписки
-            TG.openLink(task.link);
-            
-            setTimeout(() => {
-                TG.showConfirm("Ви підписалися на ресурс?", (confirmed) => {
-                    if (confirmed) {
-                        completeMission(id, task.reward);
-                    }
-                });
-            }, 3000);
-        }
+setInterval(() => {
+    const max = 1000 + (state.hnd * 200);
+    if(state.e < max) { state.e = Math.min(max, state.e + (1 + state.hnd)); render(); }
+}, 1000);
 
-        function completeMission(id, reward) {
-            if (!state.completedTasks.includes(id)) {
-                state.completedTasks.push(id);
-                state.balance += reward;
-                saveProgress();
-                updateUI();
-                renderHub();
-                TG.HapticFeedback.notificationOccurred('success');
-            }
-        }
+tonConnectUI.onStatusChange(wallet => {
+    const s = document.getElementById('tonStatus');
+    if(wallet) { s.textContent = "Connected"; s.className = "text-xs font-bold text-green-400"; }
+});
 
-        // Купівля апгрейдів
-        function buyUpgrade(type, cost) {
-            if (state.balance >= cost) {
-                state.balance -= cost;
-                if (type === 'swd') state.swordLvl++;
-                else state.handsLvl++;
-                
-                saveProgress();
-                updateUI();
-                renderHub();
-                TG.HapticFeedback.notificationOccurred('success');
-            } else {
-                TG.showAlert("Недостатньо MX монет для модифікації!");
-            }
-        }
+render();
+</script>
 
-        // Регенерація енергії
-        setInterval(() => {
-            const maxEnergy = 1000 + (state.handsLvl * 250);
-            const regenRate = 1.5 + (state.handsLvl * 0.5);
-            
-            if (state.energy < maxEnergy) {
-                state.energy = Math.min(maxEnergy, state.energy + regenRate);
-                updateUI();
-            }
-        }, 1000);
-
-        // Відстеження гаманця
-        tonConnectUI.onStatusChange(wallet => {
-            const statusText = document.getElementById('walletStatusText');
-            if (wallet) {
-                statusText.textContent = "CONNECTED: " + wallet.account.address.slice(0,4) + "..." + wallet.account.address.slice(-4);
-                statusText.className = "text-xs font-bold text-green-400 mt-1";
-            } else {
-                statusText.textContent = "Not Connected";
-                statusText.className = "text-xs font-bold text-red-500 mt-1";
-            }
-        });
-
-        // Перший запуск
-        updateUI();
-    </script>
 </body>
-</html>
+    </html>
+    
